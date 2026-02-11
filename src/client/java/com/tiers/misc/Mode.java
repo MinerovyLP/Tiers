@@ -6,6 +6,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 public enum Mode {
     MCTIERS_VANILLA(Category.MCTIERS, "\uF000", "Vanilla"),
@@ -27,7 +28,7 @@ public enum Mode {
     PVPTIERS_MACE(Category.PVPTIERS, "\uF007", "Mace"),
 
     SUBTIERS_MINECART(Category.SUBTIERS, "\uF000", "Minecart"),
-    SUBTIERS_DIAMOND_SURVIVAL(Category.SUBTIERS, "\uF001", "Diamond Survival"),
+    SUBTIERS_DIAMOND_VANILLA(Category.SUBTIERS, "\uF001", "Diamond Vanilla"),
     SUBTIERS_DEBUFF(Category.SUBTIERS, "\uF002", "DeBuff"),
     SUBTIERS_ELYTRA(Category.SUBTIERS, "\uF003", "Elytra"),
     SUBTIERS_SPEED(Category.SUBTIERS, "\uF004", "Speed"),
@@ -74,7 +75,7 @@ public enum Mode {
     }
 
     public Text getTextLabel() {
-        return Icons.colorText(label, name().toLowerCase());
+        return Icons.colorText(label, name().toLowerCase(Locale.ROOT));
     }
 
     public static Mode[] getMCTiersValues() {
