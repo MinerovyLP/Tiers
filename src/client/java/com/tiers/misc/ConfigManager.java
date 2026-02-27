@@ -177,4 +177,24 @@ public class ConfigManager {
             TiersClient.updateAllTags();
         }
     }
+
+    public static String getCurrentConfig() {
+        return "\nConfig{" +
+                "\ntoggleMod=" + config.toggleMod +
+                "\ntoggleIcons=" + config.toggleIcons +
+                "\ntoggleTab=" + config.toggleTab +
+                "\ntoggleChat=" + config.toggleChat +
+                "\ntoggleAdaptiveSeparator=" + config.toggleAdaptiveSeparator +
+                "\ntoggleAutoKitDetect=" + config.toggleAutoKitDetect +
+                "\ndisplayMode=" + config.displayMode +
+                "\nactiveIcons=" + config.activeIcons +
+                "\npositionMCTiers=" + config.positionMCTiers +
+                "\nactiveMCTiersMode=" + config.activeMCTiersMode +
+                "\npositionPvPTiers=" + config.positionPvPTiers +
+                "\nactivePvPTiersMode=" + config.activePvPTiersMode +
+                "\npositionSubtiers=" + config.positionSubtiers +
+                "\nactiveSubtiersMode=" + config.activeSubtiersMode +
+                "\nversion=" + config.version +
+                "\n}";
+    }
 }
