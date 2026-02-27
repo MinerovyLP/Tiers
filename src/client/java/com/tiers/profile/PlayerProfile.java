@@ -11,9 +11,7 @@ import com.tiers.textures.ColorControl;
 import com.tiers.textures.Icons;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
+import net.minecraft.text.*;
 import net.minecraft.util.Identifier;
 
 import javax.imageio.ImageIO;
@@ -53,6 +51,8 @@ public class PlayerProfile {
 
     public Text toAppendLeft;
     public Text toAppendRight;
+    private Text fullName;
+    private Text deepReplaceName;
 
     private int numberOfRequests;
     private final boolean regular;
@@ -305,19 +305,21 @@ public class PlayerProfile {
 
         updateAppendingText();
         return Text.empty()
-                .append(toAppendLeft)
+                .append(toAppendLeft.copy())
                 .append(playerText)
-                .append(toAppendRight);
+                .append(toAppendRight.copy());
     }
 
     public Text getFullName(Text original) {
+        original = original.copy();
+
         if (status != Status.READY)
             return original;
 
-        return Text.empty()
-                .append(toAppendLeft)
+        return fullName = Text.empty()
+                .append(toAppendLeft.copy())
                 .append(original)
-                .append(toAppendRight);
+                .append(toAppendRight.copy());
     }
 
     private Text updateProfileNameRight(SuperProfile superProfile, Mode activeMode) {
@@ -403,5 +405,79 @@ public class PlayerProfile {
             return false;
         }
         return true;
+    }
+
+    public Text deepReplace(Text original) {
+        String targetName = nameChanged ? inGameName : name;
+
+        Style originalStyle = original.getStyle();
+        MutableText newText;
+        TextContent content = original.getContent();
+
+        if (content instanceof PlainTextContent plain) {
+            String string = plain.string();
+
+            if (string.contains(targetName)) {
+                newText = Text.empty();
+                int lastIndex = 0;
+                int index;
+
+                while ((index = string.indexOf(targetName, lastIndex)) != -1) {
+                    if (index > lastIndex)
+                        newText.append(Text.literal(string.substring(lastIndex, index)).setStyle(originalStyle));
+
+                    MutableText namePart = Text.literal(targetName).setStyle(originalStyle);
+                    newText.append(getFullName(namePart));
+
+                    lastIndex = index + targetName.length();
+                }
+
+                if (lastIndex < string.length())
+                    newText.append(Text.literal(string.substring(lastIndex)).setStyle(originalStyle));
+            } else {
+                newText = Text.literal(string).setStyle(originalStyle);
+            }
+        } else if (content instanceof TranslatableTextContent translatableTextContent) {
+            Object[] args = translatableTextContent.getArgs();
+            Object[] newArgs = new Object[args.length];
+
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] instanceof Text text)
+                    newArgs[i] = deepReplace(text);
+                else if (args[i] instanceof String string)
+                    newArgs[i] = deepReplace(Text.literal(string).setStyle(originalStyle));
+                else
+                    newArgs[i] = args[i];
+            }
+            newText = Text.translatable(translatableTextContent.getKey(), newArgs).setStyle(originalStyle);
+        } else {
+            newText = original.copyContentOnly().setStyle(originalStyle);
+        }
+
+        for (Text sibling : original.getSiblings())
+            newText.append(deepReplace(sibling));
+
+        return deepReplaceName = newText;
+    }
+
+    @Override
+    public String toString() {
+        return name + "'sPlayerProfile{" +
+                "\nstatus=" + status +
+                "\nimageSaved=" + imageSaved +
+                "\nnumberOfImageRequests=" + numberOfImageRequests +
+                "\ninGameName=" + (inGameName != null ? inGameName : "null") +
+                "\nnameChanged=" + nameChanged +
+                "\nuuid=" + (uuid != null ? uuid : "null") +
+                "\ntoAppendLeft=" + (toAppendLeft != null ? toAppendLeft.getString() : "null") +
+                "\ntoAppendRight=" + (toAppendRight != null ? toAppendRight.getString() : "null") +
+                "\nfullName=" + (fullName != null ? fullName.getString() : "null") +
+                "\ndeepReplaceName=" + (deepReplaceName != null ? deepReplaceName.getString() : "null") +
+                "\nnumberOfRequests=" + numberOfRequests +
+                "\nregular=" + regular +
+                "\n\nprofileMCTiers=" + (profileMCTiers != null ? profileMCTiers : "null") +
+                "\n\nprofilePvPTiers=" + (profilePvPTiers != null ? profilePvPTiers : "null") +
+                "\n\nprofileSubtiers=" + (profileSubtiers != null ? profileSubtiers : "null") +
+                "}\n\n\n--- NEXT ---\n\n\n";
     }
 }

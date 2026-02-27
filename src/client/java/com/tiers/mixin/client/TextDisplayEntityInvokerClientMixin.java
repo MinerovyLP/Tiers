@@ -9,7 +9,4 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface TextDisplayEntityInvokerClientMixin {
     @Invoker("getText")
     Text invokeGetText();
-
-    @Invoker("setText")
-    void invokeSetText(Text text);
 }

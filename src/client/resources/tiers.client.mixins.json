@@ -8,7 +8,9 @@
     "ModifyTextDisplaysClientMixin",
     "ModifyTabClientMixin",
     "ModifyChatClientMixin",
-    "TextDisplayEntityInvokerClientMixin"
+    "TextDisplayEntityInvokerClientMixin",
+    "DataTrackerAccessor",
+    "TextDisplayAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
