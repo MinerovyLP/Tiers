@@ -3,6 +3,7 @@ package com.tiers.misc;
 import com.tiers.textures.Icons;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public enum Mode {
             case PVPTIERS -> Icons.identifierPvPTiers;
             case SUBTIERS -> Icons.identifierSubtiers;
         };
-        return Text.literal(unicode).setStyle(Style.EMPTY.withFont(identifier));
+        return Text.literal(unicode).setStyle(Style.EMPTY.withFont(identifier).withColor(Colors.WHITE));
     }
 
     public Text getIconTag() {
@@ -71,7 +72,7 @@ public enum Mode {
             case PVPTIERS -> Icons.identifierPvPTiersTags;
             case SUBTIERS -> Icons.identifierSubtiersTags;
         };
-        return Text.literal(unicode).setStyle(Style.EMPTY.withFont(identifier));
+        return Text.literal(unicode).setStyle(Style.EMPTY.withFont(identifier).withColor(Colors.WHITE));
     }
 
     public Text getTextLabel() {
