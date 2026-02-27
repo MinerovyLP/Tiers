@@ -7,7 +7,9 @@
     "ModifyNametagsClientMixin",
     "ModifyTextDisplaysClientMixin",
     "ModifyTabClientMixin",
-    "ModifyChatClientMixin"
+    "ModifyChatClientMixin",
+    "DataTrackerAccessor",
+    "TextDisplayAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
