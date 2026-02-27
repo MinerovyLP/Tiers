@@ -149,4 +149,24 @@ public class GameMode {
             return ColorControl.getColor("retired");
         return ColorControl.getColor(tier.toLowerCase(Locale.ROOT));
     }
+
+    @Override
+    public String toString() {
+        return "\nGameMode{" +
+                "\nstatus=" + status +
+                "\ngamemode=" + (gamemode != null ? gamemode.name() : "null") +
+                "\ntier=" + (tier != null ? tier : "null") +
+                "\npeakTier=" + (peakTier != null ? peakTier : "null") +
+                "\nattained=" + (attained != null ? attained : "null") +
+                "\ndisplayedTier=" + (displayedTier != null ? displayedTier.getString() : "null") +
+                "\ndisplayedTierUnformatted=" + (displayedTierUnformatted != null ? displayedTierUnformatted : "null") +
+                "\ndisplayedPeakTier=" + (displayedPeakTier != null ? displayedPeakTier.getString() : "null") +
+                "\ndisplayedPeakTierUnformatted=" + (displayedPeakTierUnformatted != null ? displayedPeakTierUnformatted : "null") +
+                "\ntierTooltip=" + (tierTooltip != null ? tierTooltip.getString() : "null") +
+                "\npeakTierTooltip=" + (peakTierTooltip != null ? peakTierTooltip.getString() : "null") +
+                "\nparsingName=" + (parsingName != null ? parsingName : "null") +
+                "\nhasPeak=" + hasPeak +
+                "\ndrawn=" + drawn +
+                "\n}";
+    }
 }
