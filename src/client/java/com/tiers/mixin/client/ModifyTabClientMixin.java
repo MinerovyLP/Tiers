@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public class ModifyTabClientMixin {
     @ModifyReturnValue(at = @At("RETURN"), method = "getDisplayName")
     private Text modifyPlayerName(Text original) {
-        if (!TiersClient.toggleMod || !TiersClient.toggleTab)
+        if (!TiersClient.toggleMod || !TiersClient.toggleTab || original == null)
             return original;
 
         String originalString = original.getString();
