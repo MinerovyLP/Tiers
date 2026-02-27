@@ -20,6 +20,9 @@ public class InventoryChecker {
             return;
         }
 
+        Mode oldActiveMCTiersMode = TiersClient.activeMCTiersMode;
+        Mode oldActivePvPTiersMode = TiersClient.activePvPTiersMode;
+        Mode oldActiveSubtiersMode = TiersClient.activeSubtiersMode;
         Mode detected = null;
 
         PlayerInventory playerInventory = minecraftClient.player.getInventory();
@@ -132,15 +135,11 @@ public class InventoryChecker {
             detected = Mode.SUBTIERS_TRIDENT;
         }
 
-        if (detected != null) {
-            if (showMessage)
-                TiersClient.sendMessageToPlayer(Text.empty().append(detected.getTextLabel()).append(Text.of(" was detected")), true);
-        } else {
-            if (showMessage)
-                TiersClient.sendMessageToPlayer(Icons.colorText("No gamemode detected", "red"), true);
-        }
-
-        ConfigManager.saveConfig();
+        if ((oldActiveMCTiersMode != TiersClient.activeMCTiersMode || oldActivePvPTiersMode != TiersClient.activePvPTiersMode || oldActiveSubtiersMode != TiersClient.activeSubtiersMode) && detected != null) {
+            ConfigManager.saveConfig();
+            TiersClient.sendMessageToPlayer(Text.empty().append(detected.getTextLabel()).append(Text.of(" was detected")), true);
+        } else if (showMessage)
+            TiersClient.sendMessageToPlayer(Icons.colorText("No gamemode detected", "red"), true);
     }
 
     private static boolean checkVanilla(PlayerInventory playerInventory) {

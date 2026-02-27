@@ -5,6 +5,8 @@ import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.context.CommandContext;
 import com.tiers.misc.*;
+import com.tiers.mixin.client.DataTrackerAccessor;
+import com.tiers.mixin.client.TextDisplayAccessor;
 import com.tiers.profile.PlayerProfile;
 import com.tiers.profile.Status;
 import com.tiers.screens.ConfigScreen;
@@ -39,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.util.*;
 
@@ -293,7 +296,7 @@ public class TiersClient implements ClientModInitializer {
             toggleMod(null);
         else if (playerName.equalsIgnoreCase("-config"))
             setScreen(ConfigScreen.getConfigScreen(null));
-        else if (playerName.equalsIgnoreCase("-help")) {
+        else if (playerName.equalsIgnoreCase("-help") || playerName.equalsIgnoreCase("-debug")) {
             sendMessageToPlayer(Icons.colorText("--- Tiers help ---", Colors.YELLOW), false);
             sendMessageToPlayer(Text.literal("- General contact: ").append(Text.literal("flavio6561 on Discord").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://discordapp.com/users/715189608085716992"))))), false);
             sendMessageToPlayer(Text.literal("- Report a bug: ").append(Text.literal("Tiers GitHub issues").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/Flavio6561/Tiers/issues"))))), false);
@@ -304,7 +307,26 @@ public class TiersClient implements ClientModInitializer {
             String[] debugInfo = getDebugInfo();
             sendMessageToPlayer(Icons.colorText("\n" + debugInfo[0], Colors.LIGHT_YELLOW), false);
             MinecraftClient.getInstance().keyboard.setClipboard(debugInfo[1]);
-            sendMessageToPlayer(Icons.colorText("A complete debug log has been copied to the clipboard", "green"), false);
+
+            try (PrintWriter printWriter = new PrintWriter(FabricLoader.getInstance().getGameDir() + "/cache/tiers/debug.log")) {
+                printWriter.println("--- Tiers Debug log ---");
+                printWriter.println("--- Section 1 ---");
+                printWriter.println(debugInfo[0]);
+                printWriter.println("--- End of section 1 ---");
+                printWriter.println("--- Section 2 ---");
+                printWriter.println(debugInfo[1]);
+                printWriter.println("--- End of section 2 ---");
+                printWriter.println("--- Section 3 ---");
+                printWriter.println(debugInfo[2]);
+                printWriter.println("--- End of section 3 ---");
+                printWriter.println("--- Section 4 ---");
+                printWriter.println(debugInfo[3]);
+                printWriter.println("--- End ---");
+            } catch (IOException ignored) {
+                LOGGER.warn("An error occurred while trying to write the debug log");
+            }
+
+            sendMessageToPlayer(Icons.colorText("A complete debug log has been copied to the clipboard and saved in your cache folder", "green"), false);
         } else if (playerName.equalsIgnoreCase("-clear")) {
             clearCache(false);
             sendMessageToPlayer(Icons.colorText("Cleared player cache", "green"), true);
@@ -312,7 +334,7 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("Not a valid command. Here's a list of valid commands:", "red"), false);
             sendMessageToPlayer(Icons.colorText("/tiers -toggle", Colors.YELLOW), false);
             sendMessageToPlayer(Icons.colorText("/tiers -config", Colors.YELLOW), false);
-            sendMessageToPlayer(Icons.colorText("/tiers -help", Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("/tiers -help | /tiers -debug", Colors.YELLOW), false);
             sendMessageToPlayer(Icons.colorText("/tiers -clear", Colors.YELLOW), false);
         } else {
             PlayerProfile playerProfile = addGetPlayer(playerName, true);
@@ -326,7 +348,15 @@ public class TiersClient implements ClientModInitializer {
     }
 
     public static String[] getDebugInfo() {
-        String[] debugInfo = new String[2];
+        String[] debugInfo = new String[4];
+
+        StringBuilder fullInfo = new StringBuilder();
+        for (PlayerProfile playerProfile : playerProfiles)
+            fullInfo.append(playerProfile);
+
+        debugInfo[2] = fullInfo.toString();
+
+        debugInfo[3] = ConfigManager.getCurrentConfig();
 
         final String[] version = new String[1];
         FabricLoader.getInstance().getModContainer("tiers").ifPresent(tiers -> version[0] = "Tiers version: " + tiers.getMetadata().getVersion().getFriendlyString());
@@ -392,13 +422,9 @@ public class TiersClient implements ClientModInitializer {
         if (minecraftClient.world == null)
             return;
 
-        for (Entity entity : minecraftClient.world.getEntities()) {
-            if (entity instanceof DisplayEntity.TextDisplayEntity textDisplay) {
-                Text text = textDisplay.getText();
-                textDisplay.setText(Text.literal(" ").append(text));
-                textDisplay.setText(text);
-            }
-        }
+        for (Entity entity : minecraftClient.world.getEntities())
+            if (entity instanceof DisplayEntity.TextDisplayEntity textDisplay)
+                ((DataTrackerAccessor) textDisplay.getDataTracker()).invokeSet(TextDisplayAccessor.getTEXT(), textDisplay.getText(), true);
     }
 
     public static Text cycleMCTiersMode() {
