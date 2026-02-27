@@ -208,4 +208,27 @@ public class SuperProfile {
 
         return Text.literal(overallTooltip).setStyle(displayedOverall.getStyle());
     }
+
+    @Override
+    public String toString() {
+        StringBuilder gameModesDetails = new StringBuilder();
+        for (GameMode gameMode : gameModes)
+            gameModesDetails.append(gameMode);
+
+        return "\nSuperProfile{" +
+                "\nstatus=" + status +
+                "\nnumberOfRequests=" + numberOfRequests +
+                "\nregion=" + (region != null ? region : "null") +
+                "\npoints=" + points +
+                "\noverallPosition=" + overallPosition +
+                "\ndisplayedRegion=" + (displayedRegion != null ? displayedRegion.getString() : "null") +
+                "\ndisplayedOverall=" + (displayedOverall != null ? displayedOverall.getString() : "null") +
+                "\noverallTooltip=" + (overallTooltip != null ? overallTooltip.getString() : "null") +
+                "\nregionTooltip=" + (regionTooltip != null ? regionTooltip.getString() : "null") +
+                "\ndrawn=" + drawn +
+                "\n\ngameModes=" + gameModesDetails +
+                "\n\nhighest=" + (highest != null ? highest : "null") +
+                "\n\noriginalJson=" + (originalJson != null ? originalJson : "null") +
+                "\n\n}";
+    }
 }

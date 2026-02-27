@@ -25,8 +25,8 @@ public abstract class ModifyTextDisplaysClientMixin {
                 detectedPlayerProfile = playerProfile;
             }
         }
-        if (numberOfMatches == 1 && detectedPlayerProfile.status == Status.READY)
-            return detectedPlayerProfile.getFullName((Text) original);
+        if (numberOfMatches == 1 && detectedPlayerProfile.status == Status.READY && original instanceof Text text)
+            return detectedPlayerProfile.deepReplace(text);
 
         return original;
     }
