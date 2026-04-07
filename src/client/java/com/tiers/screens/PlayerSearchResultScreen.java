@@ -1,19 +1,20 @@
 package com.tiers.screens;
 
 import com.tiers.TiersClient;
-import com.tiers.profile.types.MCTiersProfile;
-import com.tiers.profile.types.PvPTiersProfile;
-import com.tiers.profile.types.SubtiersProfile;
-import com.tiers.textures.ColorControl;
-import com.tiers.textures.Icons;
 import com.tiers.profile.GameMode;
 import com.tiers.profile.PlayerProfile;
 import com.tiers.profile.Status;
+import com.tiers.profile.types.MCTiersProfile;
+import com.tiers.profile.types.PvPTiersProfile;
+import com.tiers.profile.types.SubtiersProfile;
 import com.tiers.profile.types.SuperProfile;
+import com.tiers.textures.ColorControl;
+import com.tiers.textures.Icons;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ConfirmLinkScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -21,9 +22,12 @@ import net.minecraft.client.gui.widget.TextWidget;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.toast.SystemToast;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -63,9 +67,9 @@ public class PlayerSearchResultScreen extends Screen {
         int listY = (int) (height / 2.65);
         separator = height / 23;
         small = width < 575 || height < 420;
-        tooSmall = width < 430 || height < 262;
-        int firstListX = (int) (centerX - width / 3.5) - 25;
-        int thirdListX = (int) (centerX + width / 3.5) + 25;
+        tooSmall = width < 450 || height < 262;
+        int firstListX = (int) (centerX - width / 3.5) - 20;
+        int thirdListX = (int) (centerX + width / 3.5) + 20;
         int avatarY = height / 55 + 12;
 
         super.render(context, mouseX, mouseY, delta);
@@ -73,7 +77,7 @@ public class PlayerSearchResultScreen extends Screen {
         dimensionsWarning.visible = small;
         if (tooSmall) {
             dimensionsWarning.setMessage(Text.of("⚠"));
-            dimensionsWarning.setTooltip(Tooltip.of(Text.of("Your window dimensions (" + width + "x" + height + ") are too small\nLower the GUI scale or make the window bigger! (min: 430x262)")));
+            dimensionsWarning.setTooltip(Tooltip.of(Text.of("Your window dimensions (" + width + "x" + height + ") are too small\nLower the GUI scale or make the window bigger! (min: 450x262)")));
         }
 
         if (playerProfile.status == Status.SEARCHING) {
@@ -115,11 +119,25 @@ public class PlayerSearchResultScreen extends Screen {
             context.drawCenteredTextWithShadow(textRenderer, "Unranked", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
             return;
         } else if (superProfile.status == Status.TIMEOUTED) {
-            context.drawCenteredTextWithShadow(textRenderer, "Search timeouted. Clear cache and retry", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
+            context.drawCenteredTextWithShadow(textRenderer, "Search timeouted", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
+            renderFailedRequestMessage(context, superProfile, x, y);
             return;
         } else if (superProfile.status == Status.API_ISSUE) {
-            context.drawCenteredTextWithShadow(textRenderer, "Search failed: API issue", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
-            context.drawCenteredTextWithShadow(textRenderer, "Update Tiers or retry in a while", x, (int) (y + 2.8 * separator + 15), ColorControl.getColorMinecraftStandard("red"));
+            context.drawCenteredTextWithShadow(textRenderer, Text.literal("Search failed: API issue").setStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(Text.of("hello")))), x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
+            renderFailedRequestMessage(context, superProfile, x, y);
+
+            context.drawCenteredTextWithShadow(textRenderer, "Update Tiers or retry in a while", x, (int) (y + 2.8 * separator + 50), Colors.YELLOW);
+            if (!superProfile.apiErrorShown) {
+                addDrawableChild(ButtonWidget.builder(Text.literal("Report issue"), (buttonWidget) -> {
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    client.setScreen(new ConfirmLinkScreen((confirmed) -> {
+                        if (confirmed)
+                            Util.getOperatingSystem().open("https://github.com/PvPTiers/Tiers/issues");
+                        client.setScreen(this);
+                    }, "https://github.com/PvPTiers/Tiers/issues", true));
+                }).dimensions(x - 40, (int) (y + 2.8 * separator + 50 + 12), 80, 20).tooltip(Tooltip.of(Text.of("Report this issue on GitHub. Make sure to report only if the same search on either mctiers.com, pvptiers.com or subtiers.com doesn't fail"))).build());
+                superProfile.apiErrorShown = true;
+            }
             return;
         }
 
@@ -156,6 +174,13 @@ public class PlayerSearchResultScreen extends Screen {
 
             superProfile.drawn = true;
         }
+    }
+
+    private void renderFailedRequestMessage(DrawContext context, SuperProfile superProfile, int x, int y) {
+        String[] messages = superProfile.checkOutages();
+        context.drawCenteredTextWithShadow(textRenderer, messages[0], x, (int) (y + 2.8 * separator) + 15, Colors.YELLOW);
+        context.drawCenteredTextWithShadow(textRenderer, messages[1], x, (int) (y + 2.8 * separator) + 25, Colors.YELLOW);
+        context.drawCenteredTextWithShadow(textRenderer, messages[2], x, (int) (y + 2.8 * separator) + 35, Colors.YELLOW);
     }
 
     private void drawTierList(SuperProfile superProfile, int x, int y) {
@@ -225,7 +250,7 @@ public class PlayerSearchResultScreen extends Screen {
                 context.drawTexture(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, (int) (x - width / 22.5), y, 0, 0, (int) (width / 11.25), (int) (width / 6.666), (int) (width / 11.25), (int) (width / 6.666));
         } else if (playerProfile.imageSaved != 0) {
             loadPlayerAvatar();
-        } else if (playerProfile.numberOfImageRequests == 6)
+        } else if (playerProfile.numberOfImageRequests >= 6)
             context.drawCenteredTextWithShadow(textRenderer, Text.of(playerProfile.name + "'s skin failed to load. Clear cache and retry"), x, y + 50, ColorControl.getColorMinecraftStandard("red"));
     }
 
@@ -245,16 +270,20 @@ public class PlayerSearchResultScreen extends Screen {
     protected void init() {
         playerProfile.resetDrawnStatus();
 
-        dimensionsWarning = ButtonWidget.builder(Text.of("ℹ"), (buttonWidget) -> {}).dimensions(width - 20 - 5, 5, 20, 20).tooltip(Tooltip.of(Text.of("Your window dimensions (" + width + "x" + height + ") are small\nLower the GUI scale or make the window bigger to have a better experience (min: 575x420)"))).build();
+        dimensionsWarning = ButtonWidget.builder(Text.of("ℹ"), (buttonWidget) -> {
+        }).dimensions(width - 20 - 5, 5, 20, 20).tooltip(Tooltip.of(Text.of("Your window dimensions (" + width + "x" + height + ") are small\nLower the GUI scale or make the window bigger to have a better experience (ideal: 575x420)"))).build();
         dimensionsWarning.active = false;
         dimensionsWarning.visible = small;
         if (tooSmall) {
             dimensionsWarning.setMessage(Text.of("⚠"));
-            dimensionsWarning.setTooltip(Tooltip.of(Text.of("Your window dimensions (" + width + "x" + height + ") are too small\nLower the GUI scale or make the window bigger! (min: 430x262)")));
+            dimensionsWarning.setTooltip(Tooltip.of(Text.of("Your window dimensions (" + width + "x" + height + ") are too small\nLower the GUI scale or make the window bigger! (min: 450x262)")));
         }
 
         addDrawableChild(dimensionsWarning);
 
-        addDrawableChild(ButtonWidget.builder(Text.of("Update"), (buttonWidget) -> TiersClient.updatePlayerProfile(playerProfile)).dimensions(5, height - 20 - 5, 50, 20).tooltip(Tooltip.of(Text.of("Update the player profile"))).build());
+        addDrawableChild(ButtonWidget.builder(Text.of("Update"), (buttonWidget) -> TiersClient.showUpdatedPlayerProfile(playerProfile, true)).dimensions(5, height - 20 - 5, 68, 20).tooltip(Tooltip.of(Text.of("Reload the player profile"))).build());
+        addDrawableChild(ButtonWidget.builder(Icons.CYCLE, (buttonWidget) -> playerProfile.updateTierlistProfiles(1)).dimensions(5, height - 20 - 5 - 22, 20, 20).tooltip(Tooltip.of(Text.of("Update MCTiers results"))).build());
+        addDrawableChild(ButtonWidget.builder(Icons.CYCLE, (buttonWidget) -> playerProfile.updateTierlistProfiles(2)).dimensions(5 + 24, height - 20 - 5 - 22, 20, 20).tooltip(Tooltip.of(Text.of("Update PvPTiers results"))).build());
+        addDrawableChild(ButtonWidget.builder(Icons.CYCLE, (buttonWidget) -> playerProfile.updateTierlistProfiles(3)).dimensions(5 + 24 + 24, height - 20 - 5 - 22, 20, 20).tooltip(Tooltip.of(Text.of("Update Subtiers results"))).build());
     }
 }
