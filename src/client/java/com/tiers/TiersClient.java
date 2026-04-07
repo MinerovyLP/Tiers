@@ -4,11 +4,14 @@ import com.mojang.blaze3d.platform.GLX;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.context.CommandContext;
-import com.tiers.misc.*;
+import com.tiers.misc.CommandRegister;
+import com.tiers.misc.ConfigManager;
+import com.tiers.misc.Mode;
 import com.tiers.mixin.client.DataTrackerAccessor;
 import com.tiers.mixin.client.TextDisplayAccessor;
 import com.tiers.profile.PlayerProfile;
 import com.tiers.profile.Status;
+import com.tiers.profile.types.SuperProfile;
 import com.tiers.screens.ConfigScreen;
 import com.tiers.screens.PlayerSearchResultScreen;
 import com.tiers.textures.ColorLoader;
@@ -44,12 +47,19 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class TiersClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(TiersClient.class);
     public static String userAgent = "Tiers (modrinth.com/mod/tiers)";
-    public static final ArrayList<PlayerProfile> playerProfiles = new ArrayList<>();
+    public static final CopyOnWriteArrayList<PlayerProfile> playerProfiles = new CopyOnWriteArrayList<>();
+    public static final HashMap<String, PlayerProfile> readyPlayerProfiles = new HashMap<>();
+    public static final HttpClient httpClient = HttpClient.newHttpClient();
+    public static int cacheVersion;
+    public static volatile boolean cachesDirty = false;
 
     public static boolean toggleMod = true;
     public static boolean toggleIcons = true;
@@ -99,14 +109,22 @@ public class TiersClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(minecraftClient -> {
             if (toggleAutoKitDetect)
                 InventoryChecker.checkInventory(minecraftClient, false);
+            if (cachesDirty) {
+                cachesDirty = false;
+                updateCaches();
+            }
         });
 
         LOGGER.info("Tiers initialized | User agent: {}", userAgent);
     }
 
     public static PlayerProfile addGetPlayer(String playerName, boolean priority) {
+        PlayerProfile gotFromReady = readyPlayerProfiles.get(playerName);
+        if (gotFromReady != null)
+            return gotFromReady;
+
         for (PlayerProfile playerProfile : playerProfiles) {
-            if (playerProfile.name.equalsIgnoreCase(playerName) || playerProfile.inGameName.equalsIgnoreCase(playerName)) {
+            if (playerProfile.targetName.equalsIgnoreCase(playerName)) {
                 if (priority)
                     PlayerProfileQueue.changeToFirstInQueue(playerProfile);
                 return playerProfile;
@@ -124,26 +142,32 @@ public class TiersClient implements ClientModInitializer {
     }
 
     public static void updateAllTags() {
-        for (PlayerProfile playerProfile : playerProfiles)
-            playerProfile.updateAppendingText();
+        MinecraftClient.getInstance().execute(() -> {
+            readyPlayerProfiles.values().forEach(PlayerProfile::updateAppendingText);
 
-        if (ConfigScreen.ownProfile != null && ConfigScreen.defaultProfile != null) {
-            ConfigScreen.ownProfile.updateAppendingText();
-            ConfigScreen.defaultProfile.updateAppendingText();
-        }
+            if (ConfigScreen.ownProfile != null && ConfigScreen.defaultProfile != null) {
+                ConfigScreen.ownProfile.updateAppendingText();
+                ConfigScreen.defaultProfile.updateAppendingText();
+            }
+            updateCaches();
+        });
     }
 
-    public static void restyleAllTexts(ArrayList<PlayerProfile> playerProfiles) {
-        for (PlayerProfile playerProfile : playerProfiles) {
-            if (playerProfile.status == Status.READY) {
-                if (playerProfile.profileMCTiers.status == Status.READY)
-                    playerProfile.profileMCTiers.parseJson(playerProfile.profileMCTiers.originalJson);
-                if (playerProfile.profilePvPTiers.status == Status.READY)
-                    playerProfile.profilePvPTiers.parseJson(playerProfile.profilePvPTiers.originalJson);
-                if (playerProfile.profileSubtiers.status == Status.READY)
-                    playerProfile.profileSubtiers.parseJson(playerProfile.profileSubtiers.originalJson);
-            }
-        }
+    public static void restyleAllTexts(List<PlayerProfile> playerProfiles) {
+        MinecraftClient.getInstance().execute(() -> {
+            playerProfiles.forEach(playerProfile -> {
+                if (playerProfile.status == Status.READY) {
+                    if (playerProfile.profileMCTiers.status == Status.READY)
+                        playerProfile.profileMCTiers.parseJson(playerProfile.profileMCTiers.originalJson);
+                    if (playerProfile.profilePvPTiers.status == Status.READY)
+                        playerProfile.profilePvPTiers.parseJson(playerProfile.profilePvPTiers.originalJson);
+                    if (playerProfile.profileSubtiers.status == Status.READY)
+                        playerProfile.profileSubtiers.parseJson(playerProfile.profileSubtiers.originalJson);
+                }
+                playerProfile.updateAppendingText();
+            });
+            updateCaches();
+        });
     }
 
     public static String getNearestPlayerName() {
@@ -253,7 +277,7 @@ public class TiersClient implements ClientModInitializer {
     public static void sendMessageToPlayer(Text message, boolean overlay) {
         MinecraftClient minecraftClient = MinecraftClient.getInstance();
         if (minecraftClient.player != null)
-            minecraftClient.player.sendMessage(message, overlay);
+            minecraftClient.execute(() -> minecraftClient.player.sendMessage(message, overlay));
     }
 
     public static void toggleMod(CommandContext<FabricClientCommandSource> ignoredFabricClientCommandSourceCommandContext) {
@@ -298,11 +322,12 @@ public class TiersClient implements ClientModInitializer {
         else if (playerName.equalsIgnoreCase("-config"))
             setScreen(ConfigScreen.getConfigScreen(null));
         else if (playerName.equalsIgnoreCase("-help") || playerName.equalsIgnoreCase("-debug")) {
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
             sendMessageToPlayer(Icons.colorText("--- Tiers help ---", Colors.YELLOW), false);
             sendMessageToPlayer(Text.literal("- General contact: ").append(Text.literal("flavio6561 on Discord").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://discordapp.com/users/715189608085716992"))))), false);
-            sendMessageToPlayer(Text.literal("- Report a bug: ").append(Text.literal("Tiers GitHub issues").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/Flavio6561/Tiers/issues"))))), false);
+            sendMessageToPlayer(Text.literal("- Report a bug: ").append(Text.literal("Tiers GitHub issues").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/PvPTiers/Tiers/issues"))))), false);
             sendMessageToPlayer(Text.literal("- It's not advisable to create tickets in PvPTiers support"), false);
-            sendMessageToPlayer(Text.literal("- ").append(Text.literal("Changelogs").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/Flavio6561/Tiers/wiki/Version-changelogs"))))), false);
+            sendMessageToPlayer(Text.literal("- ").append(Text.literal("Changelogs").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/PvPTiers/Tiers/wiki/Version-changelogs"))))), false);
             sendMessageToPlayer(Text.literal("- ").append(Text.literal("Modrinth page").styled(style -> style.withUnderline(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://modrinth.com/mod/tiers"))))), false);
 
             String[] debugInfo = getDebugInfo();
@@ -328,15 +353,32 @@ public class TiersClient implements ClientModInitializer {
             }
 
             sendMessageToPlayer(Icons.colorText("A complete debug log has been copied to the clipboard and saved in your cache folder", "green"), false);
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
         } else if (playerName.equalsIgnoreCase("-clear")) {
             clearCache(false);
             sendMessageToPlayer(Icons.colorText("Cleared player cache", "green"), true);
+        } else if (playerName.equalsIgnoreCase("-status")) {
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
+            sendMessageToPlayer(Icons.colorText("Player profiles status:", "green"), false);
+            sendMessageToPlayer(Icons.colorText("Cached players: " + PlayerProfile.playerProfilesRequests.get() + " (" + PlayerProfile.failedPlayerProfilesRequests.get() + " failed)", Colors.WHITE), false);
+            sendMessageToPlayer(Icons.colorText("MCTiers requests failed: " + SuperProfile.failedMCTiersRequests + "/" + SuperProfile.MCTiersRequests + " (failed / requested)", Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("PvPTiers requests failed: " + SuperProfile.failedPvPTiersRequests + "/" + SuperProfile.PvPTiersRequests + " (failed / requested)", Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("Subtiers requests failed: " + SuperProfile.failedSubtiersRequests + "/" + SuperProfile.SubtiersRequests + " (failed / requested)", Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
+            sendMessageToPlayer(Icons.colorText("MCTiers status | is down? " + SuperProfile.isMCTiersDown + " | Failed request in last minute: " + SuperProfile.failedMCTiersRequestsLastMinute, Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("PvPTiers status | is down? " + SuperProfile.isPvPTiersDown + " | Failed request in last minute: " + SuperProfile.failedPvPTiersRequestsLastMinute, Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("Subtiers status | is down? " + SuperProfile.isSubtiersDown + " | Failed request in last minute: " + SuperProfile.failedSubtiersRequestsLastMinute, Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("Tiers will try to recover all failed requests once the services come back up", Colors.WHITE), false);
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
         } else if (playerName.startsWith("-")) {
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
             sendMessageToPlayer(Icons.colorText("Not a valid command. Here's a list of valid commands:", "red"), false);
             sendMessageToPlayer(Icons.colorText("/tiers -toggle", Colors.YELLOW), false);
             sendMessageToPlayer(Icons.colorText("/tiers -config", Colors.YELLOW), false);
             sendMessageToPlayer(Icons.colorText("/tiers -help | /tiers -debug", Colors.YELLOW), false);
             sendMessageToPlayer(Icons.colorText("/tiers -clear", Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("/tiers -status", Colors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("", Colors.WHITE), false);
         } else {
             PlayerProfile playerProfile = addGetPlayer(playerName, true);
             if (playerProfile.isPlayerValid())
@@ -352,8 +394,7 @@ public class TiersClient implements ClientModInitializer {
         String[] debugInfo = new String[4];
 
         StringBuilder fullInfo = new StringBuilder();
-        for (PlayerProfile playerProfile : playerProfiles)
-            fullInfo.append(playerProfile);
+        playerProfiles.forEach(fullInfo::append);
 
         debugInfo[2] = fullInfo.toString();
 
@@ -396,29 +437,42 @@ public class TiersClient implements ClientModInitializer {
         ConfigManager.saveConfig();
     }
 
-    public static void updatePlayerProfile(PlayerProfile playerProfile) {
-        playerProfiles.remove(playerProfile);
-        PlayerProfileQueue.removeFromQueue(playerProfile);
+    public static void showUpdatedPlayerProfile(PlayerProfile playerProfile, boolean removeOld) {
+        if (removeOld) {
+            playerProfiles.remove(playerProfile);
+            PlayerProfileQueue.removeFromQueue(playerProfile);
+        }
 
-        tiersCommand(playerProfile.nameChanged ? playerProfile.inGameName : playerProfile.name);
+        tiersCommand(playerProfile.targetName + (removeOld ? "-force" : ""));
     }
 
     public static void clearCache(boolean start) {
         playerProfiles.clear();
+        readyPlayerProfiles.clear();
         PlayerProfileQueue.clearQueue();
+        PlayerProfile.failedPlayerProfiles.clear();
+        SuperProfile.failedSuperProfiles.clear();
+        PlayerProfile.resetRequestCounters();
+        SuperProfile.resetRequestCounters();
 
-        try {
-            FileUtils.deleteDirectory(new File(FabricLoader.getInstance().getGameDir() + (start ? "/cache/tiers" : "/cache/tiers/players")));
-        } catch (IOException ignored) {
-            LOGGER.warn("Error deleting cache folder");
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                FileUtils.deleteDirectory(new File(FabricLoader.getInstance().getGameDir() + (start ? "/cache/tiers" : "/cache/tiers/players")));
+            } catch (IOException ignored) {
+                LOGGER.warn("Error deleting cache folder");
+            }
+        });
 
-        if (toggleMod && MinecraftClient.getInstance().world != null)
-            for (PlayerEntity playerEntity : MinecraftClient.getInstance().world.getPlayers())
-                addGetPlayer(playerEntity.getNameForScoreboard(), false);
+        MinecraftClient minecraftClient = MinecraftClient.getInstance();
+        minecraftClient.execute(() -> {
+            if (toggleMod && minecraftClient.world != null)
+                minecraftClient.world.getPlayers().forEach(playerEntity -> addGetPlayer(playerEntity.getNameForScoreboard(), false));
+        });
     }
 
-    public static void updateTextDisplayEntities() {
+    public static void updateCaches() {
+        cacheVersion++;
+
         MinecraftClient minecraftClient = MinecraftClient.getInstance();
         if (minecraftClient.world == null)
             return;

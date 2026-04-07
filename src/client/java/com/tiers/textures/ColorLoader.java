@@ -11,7 +11,10 @@ import net.minecraft.resource.ResourceReloader;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +58,9 @@ public class ColorLoader implements ResourceReloader {
             TiersClient.restyleAllTexts(configProfiles);
         }
 
-        return CompletableFuture.runAsync(() -> {}, prepareExecutor).thenCompose(reloadSynchronizer::whenPrepared).thenRunAsync(() -> {}, applyExecutor);
+        return CompletableFuture.runAsync(() -> {
+        }, prepareExecutor).thenCompose(reloadSynchronizer::whenPrepared).thenRunAsync(() -> {
+        }, applyExecutor);
     }
 
     private static String loadStringFromResources(String path) {
