@@ -7,10 +7,10 @@ import net.minecraft.util.Identifier;
 public class PvPTiersProfile extends SuperProfile {
     public static final Identifier PVPTIERS_IMAGE = Identifier.of("minecraft", "textures/pvptiers_logo.png");
 
-    public PvPTiersProfile(String uuid, String apiUrl) {
+    public PvPTiersProfile(String apiUrl, String uuid, String extra) {
         super();
         addGamemodes();
-        buildRequest(uuid, apiUrl);
+        buildRequest(apiUrl, uuid, extra);
     }
 
     public PvPTiersProfile(String json) {
