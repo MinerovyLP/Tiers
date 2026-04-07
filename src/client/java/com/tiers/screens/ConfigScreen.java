@@ -27,6 +27,7 @@ import net.minecraft.util.Identifier;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import static com.tiers.TiersClient.LOGGER;
 
@@ -141,8 +142,7 @@ public class ConfigScreen extends Screen {
         activeLeftMode.setPosition(centerX - 90 - 20 - 4, distance + 75);
         enableOwnProfile.setPosition(width - 20 - 5 - 88 - 4, height - 20 - 5);
 
-        activeRightMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT;
-        activeLeftMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT;
+        updateVisibilities();
     }
 
     @Override
@@ -232,15 +232,7 @@ public class ConfigScreen extends Screen {
                 leftPvPTiers.active = true;
                 centerPvPTiers.active = false;
             }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                leftSubtiers.active = true;
-                centerSubtiers.active = false;
-            }
-            buttonWidget.active = false;
-            centerMCTiers.active = true;
-            rightMCTiers.active = true;
-            ConfigManager.saveConfig();
+            updateLeftSwitcher(buttonWidget, centerMCTiers, rightMCTiers);
         }).dimensions(centerX - 120 - 10 - 24, distance + 145, 20, 20).tooltip(Tooltip.of(Text.of("Display MCTiers on the left"))).build();
 
         centerMCTiers = ButtonWidget.builder(Text.of("●"), (buttonWidget) -> {
@@ -258,15 +250,7 @@ public class ConfigScreen extends Screen {
                 centerPvPTiers.active = false;
                 rightPvPTiers.active = true;
             }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                centerSubtiers.active = false;
-                rightSubtiers.active = true;
-            }
-            leftMCTiers.active = true;
-            centerMCTiers.active = true;
-            buttonWidget.active = false;
-            ConfigManager.saveConfig();
+            updateRightSwitcher(buttonWidget, leftMCTiers, centerMCTiers);
         }).dimensions(centerX - 120 - 10 + 24, distance + 145, 20, 20).tooltip(Tooltip.of(Text.of("Display MCTiers on the right"))).build();
 
         leftPvPTiers = ButtonWidget.builder(Text.of("←"), (buttonWidget) -> {
@@ -276,15 +260,7 @@ public class ConfigScreen extends Screen {
                 leftMCTiers.active = true;
                 centerMCTiers.active = false;
             }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                leftSubtiers.active = true;
-                centerSubtiers.active = false;
-            }
-            buttonWidget.active = false;
-            centerPvPTiers.active = true;
-            rightPvPTiers.active = true;
-            ConfigManager.saveConfig();
+            updateLeftSwitcher(buttonWidget, centerPvPTiers, rightPvPTiers);
         }).dimensions(centerX - 10 - 24, distance + 145, 20, 20).tooltip(Tooltip.of(Text.of("Display PvPTiers on the left"))).build();
 
         centerPvPTiers = ButtonWidget.builder(Text.of("●"), (buttonWidget) -> {
@@ -302,15 +278,7 @@ public class ConfigScreen extends Screen {
                 centerMCTiers.active = false;
                 rightMCTiers.active = true;
             }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                centerSubtiers.active = false;
-                rightSubtiers.active = true;
-            }
-            leftPvPTiers.active = true;
-            centerPvPTiers.active = true;
-            buttonWidget.active = false;
-            ConfigManager.saveConfig();
+            updateRightSwitcher(buttonWidget, leftPvPTiers, centerPvPTiers);
         }).dimensions(centerX - 10 + 24, distance + 145, 20, 20).tooltip(Tooltip.of(Text.of("Display PvPTiers on the right"))).build();
 
         leftSubtiers = ButtonWidget.builder(Text.of("←"), (buttonWidget) -> {
@@ -412,32 +380,40 @@ public class ConfigScreen extends Screen {
             case MCTIERS -> useMCTiersIcons.active = false;
         }
 
+        updateVisibilities();
+
+        Stream.of(toggleMod, toggleIcons, toggleTab, toggleChat, toggleSeparatorMode, cycleDisplayMode, autoKitDetect, clearPlayerCache, leftMCTiers, centerMCTiers, rightMCTiers, leftPvPTiers, centerPvPTiers, rightPvPTiers, leftSubtiers, centerSubtiers, rightSubtiers, activeRightMode, activeLeftMode, enableOwnProfile, useClassicIcons, usePvPTiersIcons, useMCTiersIcons)
+                .forEach(this::addDrawableChild);
+
+    }
+
+    private void updateRightSwitcher(ButtonWidget buttonWidget, ButtonWidget leftMCTiers, ButtonWidget centerMCTiers) {
+        if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT) {
+            TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
+            centerSubtiers.active = false;
+            rightSubtiers.active = true;
+        }
+        leftMCTiers.active = true;
+        centerMCTiers.active = true;
+        buttonWidget.active = false;
+        ConfigManager.saveConfig();
+    }
+
+    private void updateLeftSwitcher(ButtonWidget buttonWidget, ButtonWidget centerMCTiers, ButtonWidget rightMCTiers) {
+        if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT) {
+            TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
+            leftSubtiers.active = true;
+            centerSubtiers.active = false;
+        }
+        buttonWidget.active = false;
+        centerMCTiers.active = true;
+        rightMCTiers.active = true;
+        ConfigManager.saveConfig();
+    }
+
+    private void updateVisibilities() {
         activeRightMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT;
         activeLeftMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT;
-
-        addDrawableChild(toggleMod);
-        addDrawableChild(toggleIcons);
-        addDrawableChild(toggleTab);
-        addDrawableChild(toggleChat);
-        addDrawableChild(toggleSeparatorMode);
-        addDrawableChild(cycleDisplayMode);
-        addDrawableChild(autoKitDetect);
-        addDrawableChild(clearPlayerCache);
-        addDrawableChild(leftMCTiers);
-        addDrawableChild(centerMCTiers);
-        addDrawableChild(rightMCTiers);
-        addDrawableChild(leftPvPTiers);
-        addDrawableChild(centerPvPTiers);
-        addDrawableChild(rightPvPTiers);
-        addDrawableChild(leftSubtiers);
-        addDrawableChild(centerSubtiers);
-        addDrawableChild(rightSubtiers);
-        addDrawableChild(activeRightMode);
-        addDrawableChild(activeLeftMode);
-        addDrawableChild(enableOwnProfile);
-        addDrawableChild(useClassicIcons);
-        addDrawableChild(usePvPTiersIcons);
-        addDrawableChild(useMCTiersIcons);
     }
 
     private void drawPlayerAvatar(DrawContext context, int x, int y) {
@@ -448,7 +424,7 @@ public class ConfigScreen extends Screen {
                 context.drawTexture(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, x - height / 7 / 2, y, 0, 0, height / 7, (int) (height / 4.145), height / 7, (int) (height / 4.145));
         } else if (ownProfile.imageSaved != 0) {
             loadPlayerAvatar();
-        } else if (ownProfile.numberOfImageRequests == 6)
+        } else if (ownProfile.numberOfImageRequests >= 6)
             context.drawCenteredTextWithShadow(textRenderer, Text.of(ownProfile.name + "'s skin failed to load. Restart game to retry"), x, y + 50, ColorControl.getColorMinecraftStandard("red"));
     }
 
