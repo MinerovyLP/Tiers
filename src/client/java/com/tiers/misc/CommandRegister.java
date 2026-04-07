@@ -29,8 +29,6 @@ public class CommandRegister {
 
         if (CommandSource.shouldSuggest(suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT), "-config"))
             suggestionsBuilder.suggest("-config", () -> "Open Tiers config screen");
-        if (CommandSource.shouldSuggest(suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT), "-toggle"))
-            suggestionsBuilder.suggest("-toggle", () -> "Toggle " + (TiersClient.toggleMod ? "off" : "on") + " Tiers");
 
         return suggestionsBuilder.buildFuture();
     }
