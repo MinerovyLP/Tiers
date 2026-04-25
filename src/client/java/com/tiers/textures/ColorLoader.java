@@ -45,14 +45,9 @@ public class ColorLoader implements SimpleSynchronousResourceReloadListener {
             PlayerProfileQueue.putFirstInQueue(ConfigScreen.ownProfile);
 
             String defaultProfileMojang = loadStringFromResources("json/defaultProfileMojang.json");
-            String defaultProfileMCTiers = loadStringFromResources("json/defaultProfileMCTiers.json");
             String defaultProfilePvPTiers = loadStringFromResources("json/defaultProfilePvPTiers.json");
-            String defaultProfileSubtiers = loadStringFromResources("json/defaultProfileSubtiers.json");
 
-            ConfigScreen.defaultProfile = new PlayerProfile(defaultProfileMojang,
-                    defaultProfileMCTiers,
-                    defaultProfilePvPTiers,
-                    defaultProfileSubtiers);
+            ConfigScreen.defaultProfile = new PlayerProfile(defaultProfileMojang, defaultProfilePvPTiers);
 
         } else {
             ArrayList<PlayerProfile> configProfiles = new ArrayList<>();
