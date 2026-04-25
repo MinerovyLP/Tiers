@@ -4,9 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tiers.TiersClient;
 import com.tiers.misc.Mode;
-import com.tiers.profile.types.MCTiersProfile;
 import com.tiers.profile.types.PvPTiersProfile;
-import com.tiers.profile.types.SubtiersProfile;
 import com.tiers.profile.types.SuperProfile;
 import com.tiers.textures.ColorControl;
 import com.tiers.textures.Icons;
@@ -43,8 +41,8 @@ import static com.tiers.TiersClient.*;
 
 public class PlayerProfile {
     public static final CopyOnWriteArrayList<PlayerProfile> failedPlayerProfiles = new CopyOnWriteArrayList<>();
-    public static AtomicInteger playerProfilesRequests = new AtomicInteger(0);
-    public static AtomicInteger failedPlayerProfilesRequests = new AtomicInteger(0);
+    public static final AtomicInteger playerProfilesRequests = new AtomicInteger(0);
+    public static final AtomicInteger failedPlayerProfilesRequests = new AtomicInteger(0);
     public Status status;
     public int imageSaved;
     public int numberOfImageRequests;
@@ -55,9 +53,9 @@ public class PlayerProfile {
     public String name = "";
     public String uuid = "";
 
-    public MCTiersProfile profileMCTiers;
+//    public MCTiersProfile profileMCTiers;
     public PvPTiersProfile profilePvPTiers;
-    public SubtiersProfile profileSubtiers;
+//    public SubtiersProfile profileSubtiers;
 
     public Component toAppendLeft = Component.empty();
     public Component toAppendRight = Component.empty();
@@ -118,9 +116,9 @@ public class PlayerProfile {
             LOGGER.warn("Error copying default skin");
         }
 
-        profileMCTiers = new MCTiersProfile(jsonMCTiers);
+//        profileMCTiers = new MCTiersProfile(jsonMCTiers);
         profilePvPTiers = new PvPTiersProfile(jsonPvPTiers);
-        profileSubtiers = new SubtiersProfile(jsonSubtiers);
+//        profileSubtiers = new SubtiersProfile(jsonSubtiers);
 
         status = Status.READY;
     }
@@ -317,16 +315,16 @@ public class PlayerProfile {
             if (mode != 0)
                 TiersClient.showUpdatedPlayerProfile(this, false);
 
-            if (mode == 0 || mode == 1)
-                profileMCTiers = new MCTiersProfile("https://mctiers.com/api/v2/profile/", uuid, extra);
+//            if (mode == 0 || mode == 1)
+//                profileMCTiers = new MCTiersProfile("https://mctiers.com/api/v2/profile/", uuid, extra);
             if (mode == 0 || mode == 2)
                 profilePvPTiers = new PvPTiersProfile("https://pvptiers.com/api/profile/", uuid, extra);
-            if (mode == 0 || mode == 3)
-                profileSubtiers = new SubtiersProfile("https://subtiers.net/api/profile/", uuid, extra);
+//            if (mode == 0 || mode == 3)
+//                profileSubtiers = new SubtiersProfile("https://subtiers.net/api/profile/", uuid, extra);
 
-            profileMCTiers.setOnUpdate(this::updateAppendingText);
+//            profileMCTiers.setOnUpdate(this::updateAppendingText);
             profilePvPTiers.setOnUpdate(this::updateAppendingText);
-            profileSubtiers.setOnUpdate(this::updateAppendingText);
+//            profileSubtiers.setOnUpdate(this::updateAppendingText);
         });
     }
 
@@ -334,20 +332,20 @@ public class PlayerProfile {
         toAppendRight = Component.empty();
         toAppendLeft = Component.empty();
 
-        if (positionMCTiers == DisplayStatus.RIGHT)
-            toAppendRight = updateProfileNameRight(profileMCTiers, activeMCTiersMode);
-        else if (positionMCTiers == DisplayStatus.LEFT)
-            toAppendLeft = updateProfileNameLeft(profileMCTiers, activeMCTiersMode);
+//        if (positionMCTiers == DisplayStatus.RIGHT)
+//            toAppendRight = updateProfileNameRight(profileMCTiers, activeMCTiersMode);
+//        else if (positionMCTiers == DisplayStatus.LEFT)
+//            toAppendLeft = updateProfileNameLeft(profileMCTiers, activeMCTiersMode);
 
         if (positionPvPTiers == DisplayStatus.RIGHT)
             toAppendRight = updateProfileNameRight(profilePvPTiers, activePvPTiersMode);
         else if (positionPvPTiers == DisplayStatus.LEFT)
             toAppendLeft = updateProfileNameLeft(profilePvPTiers, activePvPTiersMode);
 
-        if (positionSubtiers == DisplayStatus.RIGHT)
-            toAppendRight = updateProfileNameRight(profileSubtiers, activeSubtiersMode);
-        else if (positionSubtiers == DisplayStatus.LEFT)
-            toAppendLeft = updateProfileNameLeft(profileSubtiers, activeSubtiersMode);
+//        if (positionSubtiers == DisplayStatus.RIGHT)
+//            toAppendRight = updateProfileNameRight(profileSubtiers, activeSubtiersMode);
+//        else if (positionSubtiers == DisplayStatus.LEFT)
+//            toAppendLeft = updateProfileNameLeft(profileSubtiers, activeSubtiersMode);
 
         cachesDirty = true;
     }
@@ -429,17 +427,19 @@ public class PlayerProfile {
     }
 
     public void resetDrawnStatus() {
-        if (profileMCTiers == null || profilePvPTiers == null || profileSubtiers == null)
+//        if (profileMCTiers == null || profilePvPTiers == null || profileSubtiers == null)
+//            return;
+        if (profilePvPTiers == null)
             return;
-        profileMCTiers.apiErrorShown = false;
+//        profileMCTiers.apiErrorShown = false;
         profilePvPTiers.apiErrorShown = false;
-        profileSubtiers.apiErrorShown = false;
-        profileMCTiers.drawn = false;
+//        profileSubtiers.apiErrorShown = false;
+//        profileMCTiers.drawn = false;
         profilePvPTiers.drawn = false;
-        profileSubtiers.drawn = false;
-        profileMCTiers.gameModes.forEach(gameMode -> gameMode.drawn = false);
+//        profileSubtiers.drawn = false;
+//        profileMCTiers.gameModes.forEach(gameMode -> gameMode.drawn = false);
         profilePvPTiers.gameModes.forEach(gameMode -> gameMode.drawn = false);
-        profileSubtiers.gameModes.forEach(gameMode -> gameMode.drawn = false);
+//        profileSubtiers.gameModes.forEach(gameMode -> gameMode.drawn = false);
     }
 
     public boolean isPlayerValid() {
@@ -558,14 +558,7 @@ public class PlayerProfile {
             dest.append(Component.literal(chunkBuilder.toString()).setStyle(currentStyle));
     }
 
-    private static class StyledChar {
-        char character;
-        Style style;
-
-        StyledChar(char character, Style style) {
-            this.character = character;
-            this.style = style;
-        }
+    private record StyledChar(char character, Style style) {
     }
 
     @Override
@@ -584,9 +577,9 @@ public class PlayerProfile {
                 "\ndeepReplaceName=" + (deepReplaceName != null ? deepReplaceName.getString() : "null") +
                 "\nnumberOfRequests=" + numberOfRequests +
                 "\nregular=" + regular +
-                "\n\nprofileMCTiers=" + (profileMCTiers != null ? profileMCTiers : "null") +
+//                "\n\nprofileMCTiers=" + (profileMCTiers != null ? profileMCTiers : "null") +
                 "\n\nprofilePvPTiers=" + (profilePvPTiers != null ? profilePvPTiers : "null") +
-                "\n\nprofileSubtiers=" + (profileSubtiers != null ? profileSubtiers : "null") +
+//                "\n\nprofileSubtiers=" + (profileSubtiers != null ? profileSubtiers : "null") +
                 "}\n\n\n--- NEXT ---\n\n\n";
     }
 }
