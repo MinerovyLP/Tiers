@@ -1,6 +1,6 @@
 ## Tiers,
 
-Official tier display mod for [PvPTiers](https://pvptiers.com) 
+Official tier display mod for [PvPTiers](https://pvptiers.com)
 
 ### Mod showcase:
 
