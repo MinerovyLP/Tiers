@@ -390,7 +390,7 @@ public class TiersClient implements ClientModInitializer {
     }
 
     public static String[] getDebugInfo() {
-        String[] debugInfo = new String[4];
+        String[] debugInfo = new String[4]; 
 
         StringBuilder fullInfo = new StringBuilder();
         playerProfiles.forEach(fullInfo::append);
