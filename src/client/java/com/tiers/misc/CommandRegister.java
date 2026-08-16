@@ -30,7 +30,7 @@ public class CommandRegister {
         if (CommandSource.shouldSuggest(suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT), "-config"))
             suggestionsBuilder.suggest("-config", () -> "Open Tiers config screen");
 
-        return suggestionsBuilder.buildFuture(); 
+        return suggestionsBuilder.buildFuture();
     }
 
     public static void registerCommands() {
