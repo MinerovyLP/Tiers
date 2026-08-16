@@ -286,13 +286,13 @@ public class PlayerSearchResultScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Icons.CYCLE, (buttonWidget) -> playerProfile.updateTierlistProfiles(2)).dimensions(5 + 24, height - 20 - 5 - 22, 20, 20).tooltip(Tooltip.of(Text.of("Update PvPTiers results"))).build());
         addDrawableChild(ButtonWidget.builder(Icons.CYCLE, (buttonWidget) -> playerProfile.updateTierlistProfiles(3)).dimensions(5 + 24 + 24, height - 20 - 5 - 22, 20, 20).tooltip(Tooltip.of(Text.of("Update Subtiers results"))).build());
 
-        addRenderableWidget(Button.builder(Icons.NAMEMC, (_) -> {
-            Minecraft client = Minecraft.getInstance();
-            client.setScreenAndShow(new ConfirmLinkScreen((confirmed) -> {
+        addDrawableChild(ButtonWidget.builder(Icons.NAMEMC, (ignored) -> {
+            MinecraftClient minecraftClient = MinecraftClient.getInstance();
+            minecraftClient.setScreen(new ConfirmLinkScreen((confirmed) -> {
                 if (confirmed)
-                    Util.getPlatform().openUri("https://namemc.com/profile/" + playerProfile.uuid);
-                client.setScreenAndShow(this);
+                    Util.getOperatingSystem().open("https://namemc.com/profile/" + playerProfile.uuid);
+                minecraftClient.setScreen(this);
             }, "https://namemc.com/profile/" + playerProfile.uuid, true));
-        }).bounds(width - 20 - 5, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal("Open " + playerProfile.targetName + "'s NameMC page"))).build());
+        }).dimensions(width - 20 - 5, height - 20 - 5, 20, 20).tooltip(Tooltip.of(Text.literal("Open " + playerProfile.targetName + "'s NameMC page"))).build());
     }
 }
